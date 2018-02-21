@@ -16,15 +16,18 @@ class I18N extends \yii\i18n\I18N {
         $filename = Yii::$app->assetManager->basePath.DIRECTORY_SEPARATOR.'translations'.DIRECTORY_SEPARATOR.$category.DIRECTORY_SEPARATOR.$language.'.js';
         $sourceFilename = Yii::getAlias($this->getMessageSource($category)->basePath).DIRECTORY_SEPARATOR.$language.DIRECTORY_SEPARATOR.$category.'.php';
 
-        if (!file_exists($filename) || filemtime($filename) < filemtime($sourceFilename)) {
+        $result = true;
+        $timestamp = filemtime($filename);
+        if (!file_exists($filename) || $timestamp < filemtime($sourceFilename)) {
             FileHelper::createDirectory(Yii::$app->assetManager->basePath.DIRECTORY_SEPARATOR.'translations'.DIRECTORY_SEPARATOR.$category);
-            $this->generateJsFile($sourceFilename, $filename);
+            $result = $this->generateJsFile($sourceFilename, $filename);
         }
 
-        $view->registerJsFile(Yii::$app->assetManager->baseUrl.'/translations/'.$category.'/'.$language.'.js');
+        if ($result) $view->registerJsFile(Yii::$app->assetManager->baseUrl.'/translations/'.$category.'/'.$language.'.js?v='.$timestamp);
     }
 
     public function generateJsFile($src, $dst) {
+        if (!file_exists($src)) return false;
         $items = include $src;
         $jsSource = "window.Yii = {
 t: function (text) {
@@ -40,6 +43,6 @@ window.yiiTranslateSource = {\n";
             $i ++;
         }
         $jsSource .= "\n}\n";
-        file_put_contents($dst, $jsSource);
+        return file_put_contents($dst, $jsSource);
     }
 }
